@@ -18,7 +18,8 @@ export const CharacterProvider = ({ children }) => {
   const [level, setLevel] = useState(1);
   const [attributes, setAttributes] = useState(createInitialAttributes());
   const [skills, setSkills] = useState(ALL_SKILLS.map(s => ({...s, value: 0})));
-  const [selectedSkills, setSelectedSkills] = useState([]);
+  const [selectedSkills, setSelectedSkills] = useState([]); // Main tagged skills (max 3)
+  const [extraTaggedSkills, setExtraTaggedSkills] = useState([]); // Extra tagged skills from traits/origins
   const [forcedSelectedSkills, setForcedSelectedSkills] = useState([]);
   const [origin, setOrigin] = useState(null);
   const [trait, setTrait] = useState(null);
@@ -155,6 +156,7 @@ export const CharacterProvider = ({ children }) => {
     setAttributes(initialAttributes);
     setSkills(ALL_SKILLS.map(s => ({...s, value: 0})));
     setSelectedSkills([]);
+    setExtraTaggedSkills([]);
     setForcedSelectedSkills([]);
     setAttributesSaved(false);
     setSkillsSaved(false);
@@ -194,6 +196,7 @@ export const CharacterProvider = ({ children }) => {
     attributes, setAttributes,
     skills, setSkills,
     selectedSkills, setSelectedSkills,
+    extraTaggedSkills, setExtraTaggedSkills,
     forcedSelectedSkills, setForcedSelectedSkills,
     origin, setOrigin,
     trait, setTrait,

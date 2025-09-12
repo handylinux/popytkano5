@@ -46,10 +46,10 @@ export function getSkillPoints(attributes, level = 1) {
 }
 
 // Считает сколько уже потрачено очков на выбранные навыки
-export function calculateSkillPointsUsed(skills, selectedSkills) {
+export function calculateSkillPointsUsed(skills, selectedSkills, extraTaggedSkills = []) {
   let total = 0;
   for (const skill of skills) {
-    const isTagged = selectedSkills.includes(skill.name);
+    const isTagged = selectedSkills.includes(skill.name) || extraTaggedSkills.includes(skill.name);
     
     // Для отмеченных (tagged) навыков первые 2 очка, полученные при отметке,
     // являются бесплатными. Расходуются только те, что вложены сверх.
@@ -73,13 +73,10 @@ export function getLuckPoints(attributes, trait) {
   return maxLuck;
 }
 
-// Максимальное количество выбираемых навыков, зависит от trait (черты)
+// Максимальное количество выбираемых ОСНОВНЫХ навыков (всегда 3)
+// Экстра навыки от происхождений/черт НЕ увеличивают этот лимит
 export function getMaxSelectableSkills(trait) {
-  if (!trait) return 3; // стандартное значение
-  const baseSkills = 3;
-  // Модификатор теперь находится во вложенном объекте
-  const extraSkills = trait.modifiers?.extraSkills || 0;
-  return baseSkills + extraSkills;
+  return BASE_TAGGED_SKILLS; // Всегда 3, независимо от экстра навыков
 }
 
 // Проверка границ атрибутов с учётом trait (minLimits и maxLimits)
@@ -185,4 +182,15 @@ export const calculateMaxHealth = (attributes, level = 1) => {
   const endurance = attributes.find(attr => attr.name === 'ВЫН').value;
   const luck = attributes.find(attr => attr.name === 'УДЧ').value;
   return endurance + luck + (level > 1 ? level - 1 : 0);
+};
+
+export const calculateCarryWeight = (attributes, trait) => {
+  const strength = attributes.find(attr => attr.name === 'СИЛ').value;
+  const baseCarryWeight = 150;
+  const strengthBonus = 10 * strength;
+  
+  // Черты могут модифицировать грузоподъемность
+  const traitCarryWeightModifier = trait?.modifiers?.carryWeight || 0;
+  
+  return baseCarryWeight + strengthBonus + traitCarryWeightModifier;
 };

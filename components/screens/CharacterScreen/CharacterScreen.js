@@ -239,6 +239,7 @@ export default function CharacterScreen() {
     attributes, setAttributes,
     skills, setSkills,
     selectedSkills, setSelectedSkills,
+    extraTaggedSkills, setExtraTaggedSkills,
     forcedSelectedSkills, setForcedSelectedSkills,
     origin, setOrigin,
     trait, setTrait,
@@ -300,7 +301,7 @@ export default function CharacterScreen() {
 
   const canDistributeSkills = attributesSaved && !skillsSaved;
   const skillPointsAvailable = attributesSaved ? getSkillPoints(attributes, level) : 0;
-  const skillPointsUsed = calculateSkillPointsUsed(skills, selectedSkills);
+  const skillPointsUsed = calculateSkillPointsUsed(skills, selectedSkills, extraTaggedSkills);
   const skillPointsLeft = Math.max(0, skillPointsAvailable - skillPointsUsed);
 
   const handleSavePerkAttributes = () => {
@@ -355,73 +356,108 @@ export default function CharacterScreen() {
       return;
     }
 
-    const isForcedSkill = forcedSelectedSkills.includes(skillName);
-    
-    if (isForcedSkill && selectedSkills.includes(skillName)) {
-      Alert.alert(
-        "Ошибка", 
-        "Нельзя снять выбор с обязательного навыка"
-      );
-      return;
-    }
-
-    const isCurrentlySelected = selectedSkills.includes(skillName);
     const skillIndex = skills.findIndex(s => s.name === skillName);
     const currentSkill = skills[skillIndex];
     
-    const maxSelectable = getMaxSelectableSkills(trait);
-    // Модификатор теперь находится во вложенном объекте
+    // Check current state
+    const isInMainSkills = selectedSkills.includes(skillName);
+    const isInExtraSkills = extraTaggedSkills.includes(skillName);
+    const isForcedSkill = forcedSelectedSkills.includes(skillName);
+    const isCurrentlySelected = isInMainSkills || isInExtraSkills;
+
+    // Cannot deselect forced skills
+    if (isForcedSkill && isCurrentlySelected) {
+      Alert.alert("Ошибка", "Нельзя снять выбор с обязательного навыка");
+      return;
+    }
+
+    // Skill max value checks
     let skillMax = trait?.modifiers?.skillMaxValue ?? 6;
-    // Применяем ограничение 1-го уровня
     if (level === 1) {
       skillMax = Math.min(skillMax, 3);
     }
 
-    // Добрая Душа: 2 бонусных отмеченных из группы, остальные из группы жёстко capped 4
+    // Good Soul special handling
     const goodSoulGroup = ['Красноречие', 'Медицина', 'Ремонт', 'Наука', 'Бартер'];
     const isGoodSoul = trait?.name === 'Добрая Душа';
     const goodSoulSelected = trait?.modifiers?.goodSoulSelectedSkills || [];
+    const isBonusFromGoodSoul = isGoodSoul && goodSoulSelected.includes(skillName);
 
-    const selectedOptionalsCount = selectedSkills.filter(s => !forcedSelectedSkills.includes(s) && !goodSoulSelected.includes(s)).length;
-    // Если пытаемся отметить новый навык
+    // Get trait extra skill info
+    const extraSkillsFromTrait = trait?.extraSkills || trait?.modifiers?.extraSkills || 0;
+    const traitForcedSkills = trait?.forcedSkills || [];
+    
+    // Check if this skill can be selected as an extra skill
+    const canSelectAsExtra = extraSkillsFromTrait > 0 && 
+                           (traitForcedSkills.length === 0 || traitForcedSkills.includes(skillName));
+
     if (!isCurrentlySelected) {
-      // Проверяем лимит на количество отмеченных навыков (не считая 2 бонусных от Доброй Души)
-      const isBonusFromGoodSoul = isGoodSoul && goodSoulSelected.includes(skillName);
-      if (!isBonusFromGoodSoul && selectedOptionalsCount >= maxSelectable) {
-      Alert.alert("Ошибка", `Можно выбрать максимум ${maxSelectable} навыков`);
-      return;
-    }
-      // Проверяем, не превысит ли ранг навыка максимум после добавления +2
+      // SELECTING A NEW SKILL
+      
+      // Check skill max limit
       if (currentSkill.value + 2 > skillMax) {
         Alert.alert("Ошибка", `Отметка этого навыка превысит максимальный ранг (${skillMax}). Сначала понизьте его значение.`);
         return;
       }
-      // Бонусные навыки выбираются в модалке черты
-    }
 
-    let newSelectedSkills;
-    let valueChange = 0;
-
-    if (isCurrentlySelected) {
-      newSelectedSkills = selectedSkills.filter(s => s !== skillName);
-      valueChange = -2;
-    } else {
-      newSelectedSkills = [...selectedSkills, skillName];
-      valueChange = 2;
-    }
-
-    setSelectedSkills(newSelectedSkills);
-    setSkills(prev => prev.map((s, i) => {
-      if (i !== skillIndex) return s;
-      const inGroup = goodSoulGroup.includes(s.name);
-      const isBonus = isGoodSoul && goodSoulSelected.includes(s.name);
-      let next = Math.max(0, s.value + valueChange);
-      // Для группы: если НЕ бонусный — жёсткий потолок 4
-      if (isGoodSoul && inGroup && !isBonus) {
-        next = Math.min(next, 4);
+      // Handle Good Soul bonus skills (don't count toward main or extra limits)
+      if (isBonusFromGoodSoul) {
+        // This is handled by trait modal, should not reach here normally
+        return;
       }
-      return { ...s, value: next };
-    }));
+
+      // Forced skills go to extra pool
+      if (isForcedSkill) {
+        setExtraTaggedSkills(prev => [...prev, skillName]);
+      }
+      // Try main skills first (max 3)
+      else if (selectedSkills.length < 3) {
+        setSelectedSkills(prev => [...prev, skillName]);
+      }
+      // Try extra skills if available
+      else if (canSelectAsExtra && extraTaggedSkills.length < extraSkillsFromTrait) {
+        setExtraTaggedSkills(prev => [...prev, skillName]);
+      }
+      // No slots available
+      else {
+        const extraText = canSelectAsExtra ? 
+          `\n\nДоступно дополнительных слотов: ${extraSkillsFromTrait - extraTaggedSkills.length}` :
+          '';
+        Alert.alert(
+          "Ошибка", 
+          `Можно выбрать максимум 3 основных навыка.${extraText}`
+        );
+        return;
+      }
+
+      // Apply +2 to skill value
+      setSkills(prev => prev.map((s, i) => {
+        if (i !== skillIndex) return s;
+        let next = s.value + 2;
+        // Good Soul group cap
+        if (isGoodSoul && goodSoulGroup.includes(s.name) && !isBonusFromGoodSoul) {
+          next = Math.min(next, 4);
+        }
+        return { ...s, value: next };
+      }));
+      
+    } else {
+      // DESELECTING A SKILL
+      
+      // Remove from appropriate pool
+      if (isInMainSkills) {
+        setSelectedSkills(prev => prev.filter(s => s !== skillName));
+      }
+      if (isInExtraSkills) {
+        setExtraTaggedSkills(prev => prev.filter(s => s !== skillName));
+      }
+
+      // Apply -2 to skill value
+      setSkills(prev => prev.map((s, i) => {
+        if (i !== skillIndex) return s;
+        return { ...s, value: Math.max(0, s.value - 2) };
+      }));
+    }
   };
 
   const handleChangeSkillValue = (index, delta) => {
@@ -438,7 +474,7 @@ export default function CharacterScreen() {
     setSkills(prev => {
       const newSkills = [...prev];
       const skill = newSkills[index];
-      const isTagged = selectedSkills.includes(skill.name);
+      const isTagged = selectedSkills.includes(skill.name) || extraTaggedSkills.includes(skill.name);
 
       // Ограничение от "Добрая Душа": навыки из группы capped 4, кроме двух бонусных
       const goodSoulGroup = ['Красноречие', 'Медицина', 'Ремонт', 'Наука', 'Бартер'];
@@ -556,6 +592,12 @@ export default function CharacterScreen() {
     // Обновляем отмеченные навыки и их значения
     setSelectedSkills(currentSelected => {
       const withoutOld = currentSelected.filter(skill => !oldForcedSkills.includes(skill));
+      return withoutOld; // Forced skills go to extraTaggedSkills now
+    });
+    
+    // Обновляем экстра навыки (forced skills теперь идут сюда)
+    setExtraTaggedSkills(currentExtra => {
+      const withoutOld = currentExtra.filter(skill => !oldForcedSkills.includes(skill));
       return [...new Set([...withoutOld, ...newForcedSkills])];
     });
 
@@ -706,9 +748,19 @@ export default function CharacterScreen() {
       Alert.alert("Ошибка", "Необходимо распределить все очки навыков.");
       return;
     }
-    const maxSelectable = getMaxSelectableSkills(trait);
-    if (selectedSkills.length < maxSelectable) {
-      Alert.alert("Ошибка", `Необходимо отметить ${maxSelectable} базовых навыков.`);
+    // Проверяем, что выбрано правильное количество навыков
+    const extraSkillsFromTrait = trait?.extraSkills || trait?.modifiers?.extraSkills || 0;
+    const goodSoulSelected = trait?.modifiers?.goodSoulSelectedSkills || [];
+    
+    // Проверяем основные навыки (всегда должно быть ровно 3)
+    if (selectedSkills.length !== 3) {
+      Alert.alert("Ошибка", `Необходимо выбрать ровно 3 основных навыка. Выбрано: ${selectedSkills.length}`);
+      return;
+    }
+    
+    // Проверяем экстра навыки от черт
+    if (extraSkillsFromTrait > 0 && extraTaggedSkills.length !== extraSkillsFromTrait) {
+      Alert.alert("Ошибка", `Необходимо выбрать ${extraSkillsFromTrait} дополнительных навыка от черты. Выбрано: ${extraTaggedSkills.length}`);
       return;
     }
     const { isValid, maxRank } = validateSkills(skills, trait);
@@ -750,7 +802,8 @@ export default function CharacterScreen() {
         value: forcedSelectedSkills.includes(skill.name) ? 2 : 0
       }));
       setSkills(newSkills);
-      setSelectedSkills([...forcedSelectedSkills]);
+      setSelectedSkills([]);
+      setExtraTaggedSkills([...forcedSelectedSkills]);
       setSkillsSaved(false);
     }
     setShowResetWarning(false);
@@ -878,7 +931,17 @@ export default function CharacterScreen() {
                 />
                 <DerivedRow 
                   title="Отмечено навыков" 
-                  value={`${selectedSkills.filter(s => !forcedSelectedSkills.includes(s)).length} / ${getMaxSelectableSkills(trait)}`} 
+                  value={(() => {
+                    const extraSkillsFromTrait = trait?.extraSkills || trait?.modifiers?.extraSkills || 0;
+                    const goodSoulSelected = trait?.modifiers?.goodSoulSelectedSkills || [];
+                    const mainSelected = selectedSkills.filter(s => 
+                      !forcedSelectedSkills.includes(s) && 
+                      !goodSoulSelected.includes(s)
+                    ).length;
+                    const totalSelected = selectedSkills.length;
+                    const maxTotal = BASE_TAGGED_SKILLS + extraSkillsFromTrait + (goodSoulSelected.length > 0 ? 2 : 0);
+                    return `${mainSelected}/${BASE_TAGGED_SKILLS} основных${extraSkillsFromTrait > 0 ? ` + ${extraSkillsFromTrait} экстра` : ''} (всего: ${totalSelected}/${maxTotal})`;
+                  })()}
                 />
                 <DerivedRow 
                   title="Очки Навыков" 
@@ -911,7 +974,7 @@ export default function CharacterScreen() {
                 </View>
 
                 {skills.map((skill, index) => {
-                  const isTagged = selectedSkills.includes(skill.name);
+                  const isTagged = selectedSkills.includes(skill.name) || extraTaggedSkills.includes(skill.name);
                   const isForced = forcedSelectedSkills.includes(skill.name) && isTagged;
                   const maxValue = level === 1 ? (isTagged ? 3 : 3) : 6;
                   const isMaxReached = skill.value >= maxValue;
