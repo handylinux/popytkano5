@@ -6,7 +6,10 @@ import perksData from '../../../assets/Perks/perks.json';
 import PerkSelectModal from './PerkSelectModal';
 
 const PerksAndTraitsScreen = () => {
-  const { trait, level, selectedPerks, setSelectedPerks, annotatePerks } = useCharacter();
+  const { 
+    trait, level, selectedPerks, setSelectedPerks, annotatePerks, 
+    addPerkAttributePoints, attributesSaved 
+  } = useCharacter();
   const [isPerkModalVisible, setPerkModalVisible] = useState(false);
 
   // Создаем массив из 20 строк
@@ -29,6 +32,7 @@ const PerksAndTraitsScreen = () => {
 
   const handleChoosePerk = (perk) => {
     if (!perk) return;
+    
     // Блокируем выбор, если уже взяли максимум на уровне (доп. защита)
     if (selectedPerks.length >= level) {
       const message = 'На текущем уровне больше перков взять нельзя';
@@ -39,6 +43,35 @@ const PerksAndTraitsScreen = () => {
       }
       return;
     }
+
+    // Специальная обработка для перка "ИНТЕНСИВНЫЕ ТРЕНИРОВКИ"
+    if (perk.perk_name === "ИНТЕНСИВНЫЕ ТРЕНИРОВКИ") {
+      // Проверяем условия для выбора этого перка
+      const canTakeIntensiveTraining = level >= 2 || attributesSaved;
+      
+      if (!canTakeIntensiveTraining) {
+        const message = 'Перк "Интенсивные тренировки" можно взять только на уровне 2+ или после завершения создания персонажа (распределения атрибутов)';
+        if (Platform.OS === 'web') {
+          window.alert(message);
+        } else {
+          Alert.alert('Ошибка', message);
+        }
+        return;
+      }
+
+      // Добавляем очко атрибута
+      const attributeBonus = perk.modifiers?.attributeBonus || 1;
+      addPerkAttributePoints(attributeBonus);
+      
+      // Показываем сообщение пользователю
+      const successMessage = `Перк "${perk.perk_name}" выбран! Вы получили +${attributeBonus} очко атрибута. Перейдите на вкладку "Персонаж", чтобы распределить его.`;
+      if (Platform.OS === 'web') {
+        window.alert(successMessage);
+      } else {
+        Alert.alert('Перк выбран', successMessage);
+      }
+    }
+
     setSelectedPerks(prev => [...prev, perk]);
     setPerkModalVisible(false);
   };
