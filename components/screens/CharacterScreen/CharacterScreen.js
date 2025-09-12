@@ -22,7 +22,8 @@ import {
   getAttributeLimits,
   validateSkills,
   ALL_SKILLS,
-  isMultiTraitOrigin
+  isMultiTraitOrigin,
+  MAX_ATTRIBUTE
 } from './logic/characterLogic';
 import { AttributesSection } from './AttributesSection';
 import styles from '../../../styles';
@@ -268,16 +269,10 @@ export default function CharacterScreen() {
 
   // Активация режима распределения очков от перков
   useEffect(() => {
-    console.log('CharacterScreen useEffect - availablePerkAttributePoints:', availablePerkAttributePoints);
-    console.log('CharacterScreen useEffect - attributesSaved:', attributesSaved);
-    console.log('CharacterScreen useEffect - attributes:', attributes);
-    
     if (availablePerkAttributePoints > 0 && attributesSaved) {
-      console.log('Activating perk attribute mode');
       setTempAttributes(attributes);
       setPerkPointsToDistribute(availablePerkAttributePoints);
     } else {
-      console.log('Deactivating perk attribute mode');
       setTempAttributes(null);
       setPerkPointsToDistribute(0);
     }

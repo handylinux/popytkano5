@@ -92,11 +92,9 @@ const PerkSelectModal = ({ visible, onClose, annotatedPerks, onChoosePerk }) => 
             <TouchableOpacity 
               style={[styles.modalButton, styles.confirmButton]} 
               onPress={() => {
-                console.log('Confirm button pressed, selectedPerks:', selectedPerks);
                 if (selectedPerks.length > 0) {
                   // Выбираем только первый перк, так как в нашем случае выбирается один перк за раз
                   const chosenPerk = selectedPerks[0];
-                  console.log('Choosing perk:', chosenPerk);
                   onChoosePerk && onChoosePerk(chosenPerk);
                 }
                 onClose();
