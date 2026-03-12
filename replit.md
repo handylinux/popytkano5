@@ -23,17 +23,26 @@ This is a React Native Expo application that serves as a character sheet compani
 ```
 ├── components/
 │   ├── screens/           # Main application screens
+│   │   ├── HomeScreen/    # Character manager (grid of saved characters)
 │   │   ├── CharacterScreen/
 │   │   ├── InventoryScreen/
 │   │   ├── PerksAndTraitsScreen/
 │   │   └── WeaponsAndArmorScreen/
 │   └── CharacterContext.js
+├── db/                   # Database layer
+│   ├── index.js          # Re-exports all db functions
+│   ├── Database.js       # Facade + high-level query functions
+│   ├── schema.js         # Table definitions (DDL)
+│   ├── seed.js           # Populates tables from JSON on first run
+│   └── adapters/
+│       ├── SQLiteAdapter.js  # expo-sqlite (iOS/Android)
+│       └── WebAdapter.js     # AsyncStorage-backed (Web)
 ├── assets/               # Images and data files
-│   ├── Equipment/        # Weapons, armor, items JSON data
+│   ├── Equipment/        # Source JSON (weapons, armor, items)
 │   ├── origins/          # Character origin images
-│   ├── Perks/           # Perks data
+│   ├── Perks/           # Source JSON (perks)
 │   └── RandomLoot/      # Loot tables
-├── App.js               # Main app component
+├── App.js               # Main app component + DB init on startup
 ├── index.js             # Entry point
 └── package.json         # Dependencies
 ```

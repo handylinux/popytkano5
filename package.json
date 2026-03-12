@@ -25,7 +25,8 @@
     "react-native-pager-view": "6.7.1",
     "react-native-paper": "4.9.2",
     "react-native-safe-area-context": "5.4.0",
-    "react-native-web": "^0.20.0"
+    "react-native-web": "^0.20.0",
+    "expo-sqlite": "~15.2.14"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",

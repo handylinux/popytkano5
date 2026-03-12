@@ -4,14 +4,16 @@ if (Appearance.removeChangeListener === undefined) {
   Appearance.removeChangeListener = () => {};
 }
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { Text, View, StyleSheet, ImageBackground } from 'react-native';
+import { Text, View, StyleSheet, ImageBackground, ActivityIndicator } from 'react-native';
 import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
 import { Provider as PaperProvider } from 'react-native-paper';
 import { CharacterProvider } from './components/CharacterContext';
+import { initDatabase } from './db/Database';
+import { seedDatabase } from './db/seed';
 
 import HomeScreen from './components/screens/HomeScreen/HomeScreen';
 import CharacterScreen from './components/screens/CharacterScreen/CharacterScreen';
@@ -22,6 +24,33 @@ import PerksAndTraitsScreen from './components/screens/PerksAndTraitsScreen/Perk
 const Tab = createMaterialTopTabNavigator();
 
 function App() {
+  const [dbReady, setDbReady] = useState(false);
+
+  useEffect(() => {
+    async function initDb() {
+      try {
+        const isFirstRun = await initDatabase();
+        await seedDatabase(isFirstRun);
+      } catch (e) {
+        console.error('DB init error:', e);
+      } finally {
+        setDbReady(true);
+      }
+    }
+    initDb();
+  }, []);
+
+  if (!dbReady) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#1a1a1a' }}>
+        <ActivityIndicator size="large" color="#f0e68c" />
+        <Text style={{ color: '#f0e68c', marginTop: 16, fontSize: 14, letterSpacing: 1 }}>
+          Загрузка данных...
+        </Text>
+      </View>
+    );
+  }
+
   return (
     <PaperProvider>
       <SafeAreaProvider>

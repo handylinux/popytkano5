@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect, useRef, useCallback } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as db from '../db';
 import { 
   createInitialAttributes, 
   ALL_SKILLS, 
@@ -14,9 +14,6 @@ import { meetsPerkRequirements, getPerkUnmetReasons, annotatePerks } from './scr
 import { createModifiedWeaponFromId, createWeaponId, getAllWeapons, getWeaponModifications } from './screens/WeaponsAndArmorScreen/weaponModificationUtils';
 
 const CharacterContext = createContext();
-
-const STORAGE_LIST_KEY = 'fallout_characters_list';
-const STORAGE_CHAR_KEY = 'fallout_character_';
 
 const generateId = () => `char_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
@@ -120,21 +117,13 @@ export const CharacterProvider = ({ children }) => {
       try {
         const snapshot = buildSnapshot();
         const serialized = serializeState(snapshot);
-        await AsyncStorage.setItem(
-          STORAGE_CHAR_KEY + characterIdRef.current,
-          JSON.stringify({ ...serialized, updatedAt: Date.now() })
+        await db.saveCharacter(
+          characterIdRef.current,
+          snapshot.characterName,
+          snapshot.level ?? 1,
+          snapshot.origin?.name || null,
+          serialized
         );
-        // Обновляем метаданные в списке
-        const listRaw = await AsyncStorage.getItem(STORAGE_LIST_KEY);
-        const list = listRaw ? JSON.parse(listRaw) : [];
-        const idx = list.findIndex(c => c.id === characterIdRef.current);
-        if (idx >= 0) {
-          list[idx].updatedAt = Date.now();
-          list[idx].name = snapshot.characterName;
-          list[idx].level = snapshot.level ?? 1;
-          list[idx].originName = snapshot.origin?.name || null;
-          await AsyncStorage.setItem(STORAGE_LIST_KEY, JSON.stringify(list));
-        }
       } catch (e) {
         console.error('Realtime save error:', e);
       }
@@ -158,30 +147,14 @@ export const CharacterProvider = ({ children }) => {
       const snapshot = buildSnapshot();
       const snapshotWithName = { ...snapshot, characterName: name };
       const serialized = serializeState(snapshotWithName);
-      const now = Date.now();
 
-      await AsyncStorage.setItem(
-        STORAGE_CHAR_KEY + id,
-        JSON.stringify({ ...serialized, createdAt: now, updatedAt: now })
-      );
-
-      const listRaw = await AsyncStorage.getItem(STORAGE_LIST_KEY);
-      const list = listRaw ? JSON.parse(listRaw) : [];
-      const existingIdx = list.findIndex(c => c.id === id);
-      const entry = {
+      await db.saveCharacter(
         id,
         name,
-        createdAt: now,
-        updatedAt: now,
-        level: snapshot.level ?? 1,
-        originName: snapshot.origin?.name || null,
-      };
-      if (existingIdx >= 0) {
-        list[existingIdx] = entry;
-      } else {
-        list.push(entry);
-      }
-      await AsyncStorage.setItem(STORAGE_LIST_KEY, JSON.stringify(list));
+        snapshot.level ?? 1,
+        snapshot.origin?.name || null,
+        serialized
+      );
 
       setIsSaved(true);
       isSavedRef.current = true;
@@ -195,9 +168,9 @@ export const CharacterProvider = ({ children }) => {
   // Загрузка персонажа по ID
   const loadCharacter = useCallback(async (id) => {
     try {
-      const raw = await AsyncStorage.getItem(STORAGE_CHAR_KEY + id);
-      if (!raw) return false;
-      const data = deserializeState(JSON.parse(raw));
+      const row = await db.loadCharacterById(id);
+      if (!row) return false;
+      const data = deserializeState(row.data);
 
       setCharacterId(id);
       setCharacterName(data.characterName || '');
@@ -246,8 +219,7 @@ export const CharacterProvider = ({ children }) => {
   // Получить список всех персонажей
   const getCharactersList = useCallback(async () => {
     try {
-      const raw = await AsyncStorage.getItem(STORAGE_LIST_KEY);
-      return raw ? JSON.parse(raw) : [];
+      return await db.getCharactersList();
     } catch (e) {
       console.error('Get characters list error:', e);
       return [];
@@ -257,11 +229,7 @@ export const CharacterProvider = ({ children }) => {
   // Удалить персонажа
   const deleteCharacter = useCallback(async (id) => {
     try {
-      await AsyncStorage.removeItem(STORAGE_CHAR_KEY + id);
-      const listRaw = await AsyncStorage.getItem(STORAGE_LIST_KEY);
-      const list = listRaw ? JSON.parse(listRaw) : [];
-      const filtered = list.filter(c => c.id !== id);
-      await AsyncStorage.setItem(STORAGE_LIST_KEY, JSON.stringify(filtered));
+      await db.deleteCharacter(id);
       return true;
     } catch (e) {
       console.error('Delete character error:', e);
