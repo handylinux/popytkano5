@@ -124,13 +124,15 @@ export const CharacterProvider = ({ children }) => {
           STORAGE_CHAR_KEY + characterIdRef.current,
           JSON.stringify({ ...serialized, updatedAt: Date.now() })
         );
-        // Обновляем updatedAt в списке
+        // Обновляем метаданные в списке
         const listRaw = await AsyncStorage.getItem(STORAGE_LIST_KEY);
         const list = listRaw ? JSON.parse(listRaw) : [];
         const idx = list.findIndex(c => c.id === characterIdRef.current);
         if (idx >= 0) {
           list[idx].updatedAt = Date.now();
           list[idx].name = snapshot.characterName;
+          list[idx].level = snapshot.level ?? 1;
+          list[idx].originName = snapshot.origin?.name || null;
           await AsyncStorage.setItem(STORAGE_LIST_KEY, JSON.stringify(list));
         }
       } catch (e) {
@@ -166,7 +168,14 @@ export const CharacterProvider = ({ children }) => {
       const listRaw = await AsyncStorage.getItem(STORAGE_LIST_KEY);
       const list = listRaw ? JSON.parse(listRaw) : [];
       const existingIdx = list.findIndex(c => c.id === id);
-      const entry = { id, name, createdAt: now, updatedAt: now };
+      const entry = {
+        id,
+        name,
+        createdAt: now,
+        updatedAt: now,
+        level: snapshot.level ?? 1,
+        originName: snapshot.origin?.name || null,
+      };
       if (existingIdx >= 0) {
         list[existingIdx] = entry;
       } else {
