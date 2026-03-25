@@ -39,7 +39,7 @@ const InventoryScreen = () => {
   const [selectedItemForSale, setSelectedItemForSale] = useState(null);
   const [isAddItemModalVisible, setAddItemModalVisible] = useState(false);
 
-  const getItemName = (item) => item?.Name || item?.name || item?.Название || '';
+  const getItemName = (item) => item?.Name || item?.name || '';
   const getItemType = (item) => {
     if (item?.itemType) return item.itemType;
     if (item?.type === 'ammo') return 'ammo';
@@ -86,7 +86,7 @@ const InventoryScreen = () => {
     
     Alert.alert(
       "Применение химиката",
-      `Вы хотите применить ${item.Название || item.name} на себя или другого персонажа?`,
+      `Вы хотите применить ${getItemName(item)} на себя или другого персонажа?`,
       [
         { text: "Отмена", style: "cancel" },
         { 
@@ -105,7 +105,7 @@ const InventoryScreen = () => {
               
               Alert.alert("Успешно", `Восстановлено ${healAmount} единиц здоровья.`);
             } else {
-              Alert.alert("Применено", `${item.Название || item.name} применен на вас.`);
+              Alert.alert("Применено", `${getItemName(item)} применен на вас.`);
             }
             
             // Удаляем один экземпляр предмета из инвентаря
@@ -115,7 +115,7 @@ const InventoryScreen = () => {
         { 
           text: "На другого", 
           onPress: () => {
-            Alert.alert("Применено", `${item.Название || item.name} применен на другого персонажа.`);
+            Alert.alert("Применено", `${getItemName(item)} применен на другого персонажа.`);
             handleRemoveItem(item, 1);
           } 
         }
@@ -126,7 +126,7 @@ const InventoryScreen = () => {
   const handleRemoveItem = (itemToRemove, quantity) => {
     const newItems = [...(equipment?.items || [])];
     const itemIndex = newItems.findIndex(i => 
-      (i.Название || i.name) === (itemToRemove.Название || itemToRemove.name)
+      getItemName(i) === getItemName(itemToRemove)
     );
     
     if (itemIndex > -1) {
@@ -157,7 +157,7 @@ const InventoryScreen = () => {
     setCaps(prev => prev + finalPrice);
 
     const newItems = [...(equipment?.items || [])];
-    const itemIndex = newItems.findIndex(i => (i.Название || i.name) === (selectedItemForSale.Название || selectedItemForSale.name));
+    const itemIndex = newItems.findIndex(i => getItemName(i) === getItemName(selectedItemForSale));
 
     if (itemIndex > -1) {
       // Получаем модифицированную версию предмета, если она есть
@@ -320,8 +320,7 @@ const InventoryScreen = () => {
         const newEquipped = [...prev];
         if (newEquipped[slot] && (
           newEquipped[slot].uniqueId === weapon.uniqueId ||
-          (newEquipped[slot].Название && newEquipped[slot].Название === weapon.Название) ||
-          (newEquipped[slot].name && newEquipped[slot].name === weapon.name)
+          getItemName(newEquipped[slot]) === getItemName(weapon)
         )) {
             // Проверяем, является ли это модифицированным оружием
             // Считаем оружие модифицированным если у него есть uniqueId с 'modified-' ИЛИ есть _installedMods (новая система слотов)
@@ -398,13 +397,13 @@ const InventoryScreen = () => {
 
         // Сначала снимаем предметы, которые нужно заменить
         itemsToUnequip.forEach(item => {
-            const itemNameToRemove = item.Название || item.name;
+            const itemNameToRemove = getItemName(item);
             const itemSlots = getSlotsForArea(item.protected_area);
             itemSlots.forEach(slot => {
-                if (finalEquipped[slot].clothing?.name === itemNameToRemove || finalEquipped[slot].clothing?.Название === itemNameToRemove) {
+                if (getItemName(finalEquipped[slot].clothing) === itemNameToRemove) {
                     finalEquipped[slot].clothing = null;
                 }
-                if (finalEquipped[slot].armor?.name === itemNameToRemove || finalEquipped[slot].armor?.Название === itemNameToRemove) {
+                if (getItemName(finalEquipped[slot].armor) === itemNameToRemove) {
                     finalEquipped[slot].armor = null;
                 }
             });
@@ -455,19 +454,19 @@ const InventoryScreen = () => {
             const itemType = itemToUnequip.itemType;
             
             if (itemType === 'clothing') {
-                if (newEquipped[slot].clothing && (newEquipped[slot].clothing.Название || newEquipped[slot].clothing.name) === (itemToUnequip.Название || itemToUnequip.name)) {
+                if (newEquipped[slot].clothing && getItemName(newEquipped[slot].clothing) === getItemName(itemToUnequip)) {
                     newEquipped[slot].clothing = null;
                 }
             } else if (itemType === 'armor') {
-                if (newEquipped[slot].armor && (newEquipped[slot].armor.Название || newEquipped[slot].armor.name) === (itemToUnequip.Название || itemToUnequip.name)) {
+                if (newEquipped[slot].armor && getItemName(newEquipped[slot].armor) === getItemName(itemToUnequip)) {
                     newEquipped[slot].armor = null;
                 }
             } else if (itemType === 'outfit') {
                 // Для костюмов снимаем и одежду, и броню
-                if (newEquipped[slot].clothing && (newEquipped[slot].clothing.Название || newEquipped[slot].clothing.name) === (itemToUnequip.Название || itemToUnequip.name)) {
+                if (newEquipped[slot].clothing && getItemName(newEquipped[slot].clothing) === getItemName(itemToUnequip)) {
                     newEquipped[slot].clothing = null;
                 }
-                if (newEquipped[slot].armor && (newEquipped[slot].armor.Название || newEquipped[slot].armor.name) === (itemToUnequip.Название || itemToUnequip.name)) {
+                if (newEquipped[slot].armor && getItemName(newEquipped[slot].armor) === getItemName(itemToUnequip)) {
                     newEquipped[slot].armor = null;
                 }
             }
@@ -501,7 +500,7 @@ const InventoryScreen = () => {
               quantity: 1, 
               slot: i, 
               stackKey: w.stackKey || getStackKey(w),
-              uniqueId: w.uniqueId || `weapon-${w.Название || w.name}-${i}`
+              uniqueId: w.uniqueId || `weapon-${getItemName(w)}-${i}`
             };
             equippedItemsList.push(equippedWeapon);
         }
@@ -514,7 +513,7 @@ const InventoryScreen = () => {
         const processItem = (item, type) => {
             if (!item) return;
 
-            const itemName = item.Название || item.name;
+            const itemName = getItemName(item);
             
             if (equippedArmorItems.has(itemName)) {
                 // Если предмет уже есть, увеличиваем счетчик
@@ -554,13 +553,13 @@ const InventoryScreen = () => {
         equippedItemsList.push({
             ...displayItem,
             quantity: count,
-            uniqueId: `${type}-${item.Название || item.name}`
+            uniqueId: `${type}-${getItemName(item)}`
         });
     });
 
     const inventoryItemsList = (equipment.items || [])
         .map(item => {
-            const itemName = item.Название || item.name;
+            const itemName = getItemName(item);
             
             // Проверяем, является ли это модифицированным оружием
             // Если у предмета есть uniqueId, начинающийся с 'modified-', то это модифицированное оружие
@@ -571,8 +570,8 @@ const InventoryScreen = () => {
             
             // Подсчитываем экипированные предметы
             const equippedCount = equippedItemsList.filter(equippedItem => {
-                const equippedName = equippedItem.Название || equippedItem.name;
-                const itemName = displayItem.Название || displayItem.name;
+                const equippedName = getItemName(equippedItem);
+                const itemName = getItemName(displayItem);
                 if (isWeaponItem(displayItem) && isWeaponItem(equippedItem)) {
                   return (equippedItem.stackKey || getStackKey(equippedItem)) === itemStackKey;
                 }
@@ -622,7 +621,7 @@ const InventoryScreen = () => {
     const modifiedItem = getModifiedItem(itemWithType);
     const displayItem = modifiedItem || item;
     
-    const itemName = displayItem.Название || displayItem.name || 'Неизвестный предмет';
+    const itemName = getItemName(displayItem) || 'Неизвестный предмет';
     const isEquippable = item.itemType === 'weapon' || item.itemType === 'armor' || item.itemType === 'clothing';
     const isChem = item.itemType === 'chem';
 
@@ -815,7 +814,7 @@ const InventoryScreen = () => {
             <FlatList
               data={displayItems}
               renderItem={renderItem}
-              keyExtractor={(item, index) => item.uniqueId || `${item.Название || item.name}-${index}`}
+              keyExtractor={(item, index) => item.uniqueId || `${getItemName(item)}-${index}`}
               style={styles.list}
               ListEmptyComponent={<Text style={styles.emptyListText}>Инвентарь пуст</Text>}
               ListFooterComponent={renderFooter}

@@ -148,7 +148,7 @@ const WeaponCard = ({ weapon, onModifyWeapon }) => {
     const fireRateWithTrait = hasTrait('Техника спуска') && isLightOrEnergy ? Math.max(0, fireRateBase - 1) : fireRateBase;
 
     const stats = [
-      { label: 'ЗНАЧЕНИЕ УСПЕХА', value: `${mainAttr} + ${mainSkill} = ${successValue}` },
+      { label: 'ЗНАЧЕНИЕ УСПЕХА', value: `${successValue}` },
       { label: 'ТИП УРОНА', value: damageType },
       { label: 'УРОН', value: `${damageWithNcr}` },
       { label: 'ЭФФЕКТ', value: effectsValue },
