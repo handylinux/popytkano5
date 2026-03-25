@@ -30,8 +30,8 @@ async function seedWeapons(equipmentCatalog) {
   const statements = weaponsData.map(w => ({
     sql: `INSERT OR REPLACE INTO weapons
       (id, name, weapon_type, damage, damage_effects, damage_type, fire_rate, qualities,
-       weight, cost, rarity, ammo_id, range, range_name, rules, flavour)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       weight, cost, rarity, ammo_id, range, range_name, main_attr, main_skill, rules, flavour)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     params: [
       w.id,
       w.Name || '',
@@ -47,6 +47,8 @@ async function seedWeapons(equipmentCatalog) {
       safeStr(w['Ammo']),
       safeStr(w['Range']),
       safeStr(w['range name']),
+      safeStr(w['main_attr']),
+      safeStr(w['main_skill']),
       safeStr(w['Rules']),
       safeStr(w['Flavour']),
     ],

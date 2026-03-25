@@ -243,6 +243,8 @@ const InventoryScreen = () => {
     const freeSlotIndex = equippedWeapons.findIndex(w => w === null);
     
     const equipAction = (index) => {
+        const replacedWeapon = equippedWeapons[index];
+
         setEquippedWeapons(prev => {
             const newEquipped = [...prev];
             // Сохраняем модифицированное оружие с правильным itemType
@@ -258,6 +260,23 @@ const InventoryScreen = () => {
         
         // Уменьшаем количество предмета в инвентаре
         const newItems = equipment?.items ? [...equipment.items] : [];
+
+        if (replacedWeapon) {
+            const replacedStackKey = replacedWeapon.stackKey || getStackKey(replacedWeapon);
+            const replacedIndex = newItems.findIndex(i => (i.stackKey || getStackKey(i)) === replacedStackKey);
+            if (replacedIndex !== -1) {
+                newItems[replacedIndex].quantity += 1;
+            } else {
+                newItems.push({
+                    ...replacedWeapon,
+                    itemType: getItemType(replacedWeapon),
+                    stackKey: replacedStackKey,
+                    quantity: 1,
+                    uniqueId: undefined,
+                });
+            }
+        }
+
         const itemIndex = newItems.findIndex(i => (i.stackKey || getStackKey(i)) === sourceStackKey);
         
         if (itemIndex !== -1) {
