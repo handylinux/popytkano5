@@ -126,6 +126,14 @@ function applyDbModEffectsToWeapon(baseWeapon, selectedBySlot) {
   let fire_rate = fireRateBase;
   let weight = weightBase;
   let cost = costBase;
+  let rangeShift = 0;
+  const qualities = new Set(
+    String(baseWeapon.qualities ?? baseWeapon.Качества ?? '')
+      .split(',')
+      .map(q => q.trim())
+      .filter(Boolean)
+      .filter(q => q !== '–')
+  );
 
   // Минимальный парсер Effects из seed-данных, напр:
   // "plus 1 CD Damage, plus 2 Fire Rate"
@@ -146,10 +154,27 @@ function applyDbModEffectsToWeapon(baseWeapon, selectedBySlot) {
     if (frPlus) fire_rate += Number(frPlus[1]);
     if (frMinus) fire_rate -= Number(frMinus[1]);
 
+    const rangePlus = eff.match(/plus\s+(\d+)\s+Range/i);
+    const rangeMinus = eff.match(/minus\s+(\d+)\s+Range/i);
+    if (rangePlus) rangeShift += Number(rangePlus[1]);
+    if (rangeMinus) rangeShift -= Number(rangeMinus[1]);
+
+    const gainMatches = [...eff.matchAll(/gain\s+([^,]+)/gi)];
+    gainMatches.forEach(([, q]) => qualities.add(String(q).trim()));
+    const loseMatches = [...eff.matchAll(/lose\s+([^,]+)/gi)];
+    loseMatches.forEach(([, q]) => qualities.delete(String(q).trim()));
+
     // Вес/цена модов (если есть)
     weight += toNumber(mod.weight);
     cost += toNumber(mod.cost);
   }
+
+  const rangeOrder = ['Близкая', 'Средняя', 'Дальняя', 'Экстремальная'];
+  const currentRangeName = String(baseWeapon.range_name ?? baseWeapon.Дистанция ?? 'Близкая').trim();
+  const currentRangeIndex = Math.max(0, rangeOrder.indexOf(currentRangeName));
+  const nextRangeIndex = Math.max(0, Math.min(rangeOrder.length - 1, currentRangeIndex + rangeShift));
+  const range_name = rangeOrder[nextRangeIndex];
+  const qualitiesValue = qualities.size ? Array.from(qualities).join(', ') : '–';
 
   return {
     ...baseWeapon,
@@ -157,6 +182,10 @@ function applyDbModEffectsToWeapon(baseWeapon, selectedBySlot) {
     _baseName: baseName,
     damage,
     fire_rate,
+    range_name,
+    Дистанция: range_name,
+    qualities: qualitiesValue,
+    Качества: qualitiesValue,
     weight: String(weight),
     cost,
     // сохраняем выбранные моды
