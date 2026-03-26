@@ -1,12 +1,9 @@
-const { spawn } = require('child_process');
-const path = require('path');
+const { exec } = require('child_process');
 
 console.log('Starting Expo web server...');
 
-const expo = spawn('npm', ['run', 'web'], {
-  cwd: path.dirname(__filename),
-  stdio: 'inherit',
-  shell: true
+const expo = exec('cd /vercel/share/v0-project && npm run web', {
+  stdio: 'inherit'
 });
 
 expo.on('error', (err) => {
