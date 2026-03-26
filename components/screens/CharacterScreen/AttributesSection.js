@@ -2,6 +2,8 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { MIN_ATTRIBUTE, MAX_ATTRIBUTE, getAttributeLimits } from './logic/characterLogic';
+import { getAttributeLabel } from './logic/attributeKeyUtils';
+import { tCharacterScreen } from './logic/characterScreenI18n';
 
 const AttributeRow = ({ name, value, onIncrease, onDecrease, disabled, remainingPoints, trait, isPerkMode, baseValue }) => {
   const { min, max } = getAttributeLimits(trait, name);
@@ -11,7 +13,7 @@ const AttributeRow = ({ name, value, onIncrease, onDecrease, disabled, remaining
 
   return (
     <View style={styles.attributeRow}>
-      <Text style={[styles.attributeName, { maxWidth: '50%'}]}>{name}</Text>
+      <Text style={[styles.attributeName, { maxWidth: '50%'}]}>{getAttributeLabel(name)}</Text>
       {!disabled ? (
         <CompactCounter 
           value={value}
@@ -64,9 +66,11 @@ export const AttributesSection = ({
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>АТРИБУТЫ</Text>
+        <Text style={styles.sectionTitle}>
+          {tCharacterScreen('labels.attributes', 'Атрибуты').toUpperCase()}
+        </Text>
         {(!attributesSaved || isPerkMode) && (
-          <Text style={styles.pointsText}>Очки: {remainingAttributePoints}</Text>
+          <Text style={styles.pointsText}>{tCharacterScreen('labels.points', 'Очки')}: {remainingAttributePoints}</Text>
         )}
       </View>
       {attributes.map((attr, index) => (
@@ -90,13 +94,13 @@ export const AttributesSection = ({
             style={[styles.button, styles.saveButton]}
             onPress={onSaveAttributes}
           >
-            <Text style={styles.buttonText}>Сохранить</Text>
+            <Text style={styles.buttonText}>{tCharacterScreen('buttons.save', 'Сохранить')}</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={[styles.button, styles.resetButton]}
             onPress={onResetAttributes}
           >
-            <Text style={styles.buttonText}>Сбросить</Text>
+            <Text style={styles.buttonText}>{tCharacterScreen('buttons.reset', 'Сбросить')}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -107,7 +111,7 @@ export const AttributesSection = ({
             onPress={onApplyPerkAttributes}
             disabled={remainingAttributePoints > 0}
           >
-            <Text style={styles.buttonText}>Применить</Text>
+            <Text style={styles.buttonText}>{tCharacterScreen('buttons.confirm', 'Подтвердить')}</Text>
           </TouchableOpacity>
         </View>
       )}
