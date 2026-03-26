@@ -79,7 +79,7 @@ const EquipmentKitModal = ({ visible, onClose, equipmentKits, onSelectKit }) => 
       if (kit[key]) {
         for (let index = 0; index < kit[key].length; index++) {
           const item = kit[key][index];
-          let chosenItem = item.type === 'fixed' ? item : null;
+          let chosenItem = item.type === 'choice' ? null : item;
           if (item.type === 'choice') {
             const selectedKey = selectedChoices[`${kit.name}-${key}-${index}`];
             const options = Array.isArray(item.options) ? item.options : [];
@@ -268,7 +268,7 @@ const EquipmentKitModal = ({ visible, onClose, equipmentKits, onSelectKit }) => 
                                   </View>
                                 );
                               }
-                              if (item?.type === 'fixed') {
+                              if (item?.type === 'fixed' || !item?.type) {
                                 return (
                                   <View key={index} style={styles.fixedItem}>
                                     {renderItemDetails(item)}
